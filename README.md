@@ -1,63 +1,63 @@
-# SFTP-Stresstest-Tool
+# SFTP Stress Test Tool
 
-Tool zum Testen der Leistung und Zuverlässigkeit von SFTP-Servern unter verschiedenen Lastbedingungen.
+Tool for testing the performance and reliability of SFTP servers under different load conditions.
 
-## Überblick
+## Overview
 
-Mit dem SFTP Stress Test Tool können Benutzer SFTP-Server einem Benchmarking und Stresstest unterziehen, indem sie mehrere gleichzeitige Verbindungen und Dateiübertragungen simulieren.
+The SFTP Stress Test Tool allows users to benchmark and stress test SFTP servers by simulating multiple simultaneous connections and file transfers.
 
-Das Tool hilft bei der Ermittlung von Leistungsengpässen, Verbindungsgrenzen und der allgemeinen Serverstabilität.
+The tool helps determine performance bottlenecks, connection limits and overall server stability.
 
 ## Download
 
-Kompilierte Windows executable befindet sich unter:
-
-Direkter download [**Hier klicken**](https://git.de.geis-group.net/lobster-administration/python/sftp-stress-test-tool/-/raw/main/binary_executable/SFTPTestTool.7z)
+Compiled Windows executable is located at:
 
 ![alt text](_internal/docs/binary_exe.png)
 
-`7z` Datei `SFTPTestTool.7z` herunterladen und entpacken in einem Ordner.
+Download `7z` file `SFTPTestTool.7z` and unzip it in a folder.
 
 ![alt text](_internal/docs/exe.png)
 ___
 
-## Funktionen
+## Functions
 
-### SFTP-Konfiguration
-
-
-- Verbindung zu jedem SFTP-Server mit Standard-Authentifizierung
-
-- Anpassbare Port-Auswahl (Standard: 22)
-
-- Angabe des Verzeichnispfads für Dateiübertragungen
-
-### Test-Parameter
-
-- Auswahl bestimmter Testdateien für die Übertragung
-
-- Konfiguration der Anzahl der gleichzeitigen Verbindungen (1-100)
-
-- Mögliche Aktivierung mehrere Dateiübertragungen gleichzeitig
+### SFTP configuration
 
 
-### Zusätzliche Tools
+- Connection to any SFTP server with standard authentication
 
-- Integrierter Dummy-Dateigenerator zur Erstellung von Testdateien
+- Customizable port selection (default: 22)
 
-- Autofill-Funktion für häufig verwendete Konfigurationen, erweiterbar unter "Settings"
+- Specification of the directory path for file transfers
 
-## Verwendung
+### Test parameters
 
-- Details des SFTP-Servers eingeben (Host, Port, Verzeichnis, Benutzername, Passwort)
+- Selection of specific test files for transfer
 
-- Eine Testdatei auswähle oder eine oder mehrere Dummy-Dateien erzeugen (optional)
+- Configuration of the number of simultaneous connections (1-100)
 
-- Testparameter Konfigurieren (gleichzeitige Verbindungen, mehrere Dateiübertragungen)
+- Possible activation of multiple file transfers simultaneously
 
-- Mit dem klick  auf "Run SFTP Stress Test", wird der Prozess gestartet
+
+### Additional tools
+
+- Integrated dummy file generator for creating test files
+
+- Autofill function for frequently used configurations, expandable under “Settings”
+
+## Usage
+
+- Enter details of the SFTP server (host, port, directory, user name, password)
+
+- Select a test file or create one or more dummy files (optional)
+
+- Configure test parameters (simultaneous connections, multiple file transfers)
+
+- Click on “Run SFTP Stress Test” to start the process
 
 
 ## Screenshot
 
 ![alt text](_internal/docs/pt1.png)
+
+Translated with DeepL.com (free version)
