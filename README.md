@@ -59,5 +59,3 @@ ___
 ## Screenshot
 
 ![alt text](_internal/docs/pt1.png)
-
-Translated with DeepL.com (free version)
