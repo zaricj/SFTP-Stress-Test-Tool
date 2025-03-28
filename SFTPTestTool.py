@@ -610,7 +610,7 @@ class MainWindow(QMainWindow):
         
         # Settings Menu
         settings_menu = menu_bar.addMenu("&Settings")
-        settings_action = QAction("Manage and create custom autofill actions", self)
+        settings_action = QAction("Custom Autofill Manager", self)
         settings_action.triggered.connect(self.open_custom_action_dialog)
         settings_menu.addAction(settings_action)
         
@@ -1091,22 +1091,29 @@ def main():
     
     my_custom_colors = {
         "[dark]": {
-            "primary": "#FFC141",
-            "menubar.selectionBackground": "#aa811b",
-            "popupItem.selectionBackground": "#aa811b",
-            "scrollbarSlider.background": "#FFC141"
+            "primary": "#3F69FD",
+            "menubar.selectionBackground": "#3F69FD",
+            "popupItem.selectionBackground": "#3F69FD",
+            "input.background": "#3f4042",
+            "background>textarea": "#3f4042",
+            "primary>button.hoverBackground": "#3f4042",
+            "scrollbarSlider.background": "#3F69FD"
         },
+        
         "[light]": {
             "primary": "#2c5aff",
-            "background": "#ebecec",
+            "background": "#fcfcfc",
             "foreground": "#000000",
-            "input.background": "#f8f8f8",
+            "input.background": "#ebebeb",
+            "background>textarea": "#ebebeb",
+            "primary>button.hoverBackground": "#ebebeb",
             "border": "#949494",
             "menubar.selectionBackground": "#7092FF",
             "popupItem.selectionBackground": "#7092FF",
             "scrollbarSlider.background": "#2c5aff"
         }
     }
+    
     qdarktheme.setup_theme(theme="auto", custom_colors=my_custom_colors)
     
     window = MainWindow()
