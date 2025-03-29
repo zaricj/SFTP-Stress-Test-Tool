@@ -1092,25 +1092,25 @@ def main():
     my_custom_colors = {
         "[dark]": {
             "primary": "#3F69FD",
-            "menubar.selectionBackground": "#3F69FD",
-            "popupItem.selectionBackground": "#3F69FD",
             "input.background": "#3f4042",
             "background>textarea": "#3f4042",
             "primary>button.hoverBackground": "#3f4042",
+            "menubar.selectionBackground": "#3F69FD",
+            "popupItem.selectionBackground": "#3F69FD",
             "scrollbarSlider.background": "#3F69FD"
         },
         
         "[light]": {
-            "primary": "#2c5aff",
+            "primary": "#3F69FD",
             "background": "#fcfcfc",
             "foreground": "#000000",
             "input.background": "#ebebeb",
             "background>textarea": "#ebebeb",
             "primary>button.hoverBackground": "#ebebeb",
             "border": "#949494",
-            "menubar.selectionBackground": "#7092FF",
-            "popupItem.selectionBackground": "#7092FF",
-            "scrollbarSlider.background": "#2c5aff"
+            "menubar.selectionBackground": "#3F69FD",
+            "popupItem.selectionBackground": "#3F69FD",
+            "scrollbarSlider.background": "#3F69FD"
         }
     }
     
