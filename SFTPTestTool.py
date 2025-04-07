@@ -352,17 +352,18 @@ class NetworkMonitor(QThread):
 class SFTPWorker(QThread):
     """Worker thread for SFTP uploads"""
     progress_signal = Signal(int)
+    multi_file_progress_signal = Signal(int)  # For multiple files
     task_progress_signal = Signal(int, bool)  # task_id, success
     log_signal = Signal(str)
     finished_signal = Signal(float)
     statusbar_signal = Signal(str, int)
-    widget_hidden_state = Signal(bool)
+    statusbar_hidden_state = Signal(bool)
     
-    def __init__(self, connections:int, test_file: str, multiple_files: bool, host: str, port: str, directory: str, username: str, password: str):
+    def __init__(self, connections:int, test_file: str, multiple_files_state: bool, host: str, port: str, directory: str, username: str, password: str):
         super().__init__()
         self.connections = connections
         self.test_file = test_file
-        self.multiple_files = multiple_files
+        self.transfer_multiple_files = multiple_files_state
         self.host = host
         self.port = port
         self.directory = directory
@@ -376,7 +377,7 @@ class SFTPWorker(QThread):
         self.stop_event = threading.Event()
         
     def run(self):
-        self.widget_hidden_state.emit(True)
+        self.statusbar_hidden_state.emit(True)
         start_time = time.time()
         self.tasks_completed = 0
 
@@ -414,7 +415,7 @@ class SFTPWorker(QThread):
             # Dynamic message based on how the task ended
             if self.stop_event.is_set():
                 self.log_signal.emit("=" * 50)
-                self.log_signal.emit(f"Task was canceled after {self.tasks_completed} successful uploads in {total_time:.2f} seconds.")
+                self.log_signal.emit(f"Task was canceled after {self.tasks_completed} uploads in {total_time:.2f} seconds.")
             elif self.tasks_completed == self.tasks_total:
                 self.log_signal.emit("=" * 50)
                 self.log_signal.emit(f"Completed all {self.tasks_completed} SFTP uploads in {total_time:.2f} seconds.")
@@ -432,6 +433,8 @@ class SFTPWorker(QThread):
         
         transport = None
         sftp = None
+        total_files = 0
+        update_count_state = False
     
         try:
             self.log_signal.emit(f"Task {task_id}: Starting upload...")
@@ -441,7 +444,11 @@ class SFTPWorker(QThread):
             transport.connect(username=self.username, password=self.password)
             sftp = paramiko.SFTPClient.from_transport(transport)
     
-            if self.multiple_files:
+            if self.transfer_multiple_files:
+                if self.connections > 1:
+                    update_count_state = False
+                else:
+                    update_count_state = True
                 # Assuming self.test_file is a directory in this case
                 files = os.listdir(self.test_file)
                 self.log_signal.emit(f"Task {task_id}: Uploading {len(files)} files...")
@@ -454,7 +461,11 @@ class SFTPWorker(QThread):
                     remote_path = self._get_remote_path(file, task_id)
     
                     sftp.put(local_path, remote_path)
-                    self.log_signal.emit(f"Task {task_id}: Upload successful to {remote_path}.")
+                    self.log_signal.emit(f"Task {task_id}: Upload successful to dir: '{remote_path}'.")
+                    if update_count_state:
+                        total_files += 1
+                        progress = int((total_files / len(files)) * 100)
+                        self.multi_file_progress_signal.emit(progress)
             else:
                 if self.stop_event.is_set():
                     self.log_signal.emit(f"Task {task_id}: Canceled during file uploads.")
@@ -714,8 +725,16 @@ class MainWindow(QMainWindow):
         # Test File Selection
         file_layout = QHBoxLayout()
         self.multi_file_checkbox = QCheckBox("Enable transfer of multiple files at once")
+        self.multi_file_progressbar = QProgressBar()
+        self.multi_file_progressbar.setHidden(True)
         self.multi_file_checkbox.setChecked(False)
         self.multi_file_checkbox.stateChanged.connect(self.multi_select_state_changed)
+        
+        # Horizontal layout for multifile and progress bar
+        multi_file_layout = QHBoxLayout()
+        multi_file_layout.addWidget(self.multi_file_checkbox, 1)
+        multi_file_layout.addWidget(self.multi_file_progressbar, 2)
+        
         self.test_file_input = QLineEdit()
         self.test_file_input.setPlaceholderText("Please select a test file...")
         self.test_file_input.textChanged.connect(lambda: self.log_output.setText(f"The total number of files in selected folder is {len(os.listdir(self.test_file_input.text()))}") if os.path.isdir(self.test_file_input.text()) else None)
@@ -735,7 +754,7 @@ class MainWindow(QMainWindow):
         
         test_layout.addRow("Test File:", file_layout)
         test_layout.addRow("Concurrent Connections:", self.connections_input)
-        test_layout.addRow("Multiple Files", self.multi_file_checkbox)
+        test_layout.addRow("Multiple Files", multi_file_layout) # Added Horizotnal layout for multiple files and progress bar instead of only checkbox
         
         # Progress
         progress_group = QGroupBox("Test Progress")
@@ -932,7 +951,7 @@ class MainWindow(QMainWindow):
         password = self.password_input.text()
         test_file = self.test_file_input.text()
         connections = self.connections_input.value()
-        multiple_files = self.multi_file_checkbox.isChecked()
+        multiple_files_state = self.multi_file_checkbox.isChecked()
         
         # Validate inputs
         if not os.path.exists(test_file):
@@ -954,12 +973,13 @@ class MainWindow(QMainWindow):
         self.cancel_test_button.setEnabled(True)
         
         # Create and start worker thread
-        self.sftp_worker = SFTPWorker(connections, test_file, multiple_files, host, port, directory, username, password)
+        self.sftp_worker = SFTPWorker(connections, test_file, multiple_files_state, host, port, directory, username, password)
         self.sftp_worker.progress_signal.connect(self.update_sftp_progress)
+        self.sftp_worker.multi_file_progress_signal.connect(self.update_multi_files_progress)
         self.sftp_worker.task_progress_signal.connect(self.update_task_progress)
         self.sftp_worker.log_signal.connect(self.update_log)
         self.sftp_worker.statusbar_signal.connect(self.update_statusbar)
-        self.sftp_worker.widget_hidden_state.connect(self.update_statusbar_state)
+        self.sftp_worker.statusbar_hidden_state.connect(self.update_statusbar_state)
         self.sftp_worker.finished_signal.connect(self.test_finished)
         self.sftp_worker.start()
     
@@ -970,10 +990,17 @@ class MainWindow(QMainWindow):
             self.log_output.append("SFTP Upload may continue trying to upload file(s) when a connection attempt fails, but will stop shortly after.")
             self.run_test_button.setEnabled(True)
             self.cancel_test_button.setEnabled(False)
+            self.multi_file_progressbar.setValue(0)
+            self.multi_file_progressbar.setHidden(True)
     
     @Slot(int)
     def update_sftp_progress(self, value):
         self.progress_bar.setValue(value)
+        
+    @Slot(int)
+    def update_multi_files_progress(self, value):
+        self.multi_file_progressbar.setHidden(False)
+        self.multi_file_progressbar.setValue(value)
     
     @Slot(int, bool)
     def update_task_progress(self, task_id, success):
@@ -998,6 +1025,8 @@ class MainWindow(QMainWindow):
     def test_finished(self, total_time):
         self.run_test_button.setEnabled(True)
         self.cancel_test_button.setEnabled(False)
+        self.multi_file_progressbar.setValue(0)
+        self.multi_file_progressbar.setHidden(True)
         #self.log_output.append(f"Test completed in {total_time:.2f} seconds.")
         self.log_output.append("=" * 50)
     
