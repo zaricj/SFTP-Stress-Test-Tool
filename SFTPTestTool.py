@@ -143,17 +143,17 @@ class CustomAutoFillAction(QDialog):
         hor_layout = QHBoxLayout()
 
         # Elements
-        self.description = QLabel("Here you can use the inputs below to create a custom autofill action:")
+        self.description = QLabel("Use the inputs below to define a custom autofill action for a target system:")
         self.action_name_input = QLineEdit()
         self.action_name_input.setPlaceholderText("Enter a name for the action")
         self.host_action_input = QLineEdit()
-        self.host_action_input.setPlaceholderText("Enter the host address")
+        self.host_action_input.setPlaceholderText("Enter host address")
         self.directory_action_input = QLineEdit()
-        self.directory_action_input.setPlaceholderText("Enter the directory")
+        self.directory_action_input.setPlaceholderText("Enter directory path")
         self.username_action_input = QLineEdit()
-        self.username_action_input.setPlaceholderText("Enter the username")
+        self.username_action_input.setPlaceholderText("Enter username")
         self.password_action_input = QLineEdit()
-        self.password_action_input.setPlaceholderText("Enter the password")
+        self.password_action_input.setPlaceholderText("Enter password")
         self.password_action_input.setEchoMode(QLineEdit.Password)
         self.save_button = QPushButton("Save Action")
         self.save_button.clicked.connect(self.save_custom_action)
@@ -449,7 +449,7 @@ class SFTPWorker(QThread):
                     update_count_state = False
                 else:
                     update_count_state = True
-                # Assuming self.test_file is a directory in this case
+
                 files = os.listdir(self.test_file)
                 self.log_signal.emit(f"Task {task_id}: Uploading {len(files)} files...")
     
@@ -461,7 +461,7 @@ class SFTPWorker(QThread):
                     remote_path = self._get_remote_path(file, task_id)
     
                     sftp.put(local_path, remote_path)
-                    self.log_signal.emit(f"Task {task_id}: Upload successful to dir: '{remote_path}'.")
+                    self.log_signal.emit(f"Task {task_id}: Upload successful to: '{remote_path}'.")
                     if update_count_state:
                         total_files += 1
                         progress = int((total_files / len(files)) * 100)
@@ -475,7 +475,7 @@ class SFTPWorker(QThread):
                 remote_path = self._get_remote_path(file_name, task_id)
     
                 sftp.put(self.test_file, remote_path)
-                self.log_signal.emit(f"Task {task_id}: Upload successful to {remote_path}.")
+                self.log_signal.emit(f"Task {task_id}: Upload successful to: '{remote_path}'.")
     
             return True
     
@@ -498,7 +498,7 @@ class SFTPWorker(QThread):
         """
         base, ext = os.path.splitext(file_name)
         if task_id > 0:
-            file_name = f"{base}_taskid_{task_id}{ext}"
+            file_name = f"{base}_task_id_{task_id}{ext}"
     
         return f"{self.directory}/{file_name}"
 
@@ -579,7 +579,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings("SFTP_Main", "Jovan") # Settings to save current location of the windows on exit
         geometry = self.settings.value("main_window_geometry", bytes())
 
-        self.setWindowTitle("SFTP Stress Test Tool")
+        self.setWindowTitle("SFTP Stress Test Tool v1.4.1")
         self.setWindowIcon(app_icon)
         self.setMinimumSize(800, 600)
         self.restoreGeometry(geometry)
@@ -599,7 +599,7 @@ class MainWindow(QMainWindow):
         self.file_generator_tab = QWidget()
         
         tabs.addTab(self.stress_test_tab, "SFTP Stress Test")
-        tabs.addTab(self.file_generator_tab, "Dummy File Generator")
+        tabs.addTab(self.file_generator_tab, "Test File Generator")
         
         # Setup each tab
         self.setup_stress_test_tab()
@@ -683,7 +683,8 @@ class MainWindow(QMainWindow):
     
     def open_custom_action_dialog(self):
         self.w = CustomAutoFillAction(self)
-        self.w.exec()
+        # Use show() instead of exec() to make it non-modal
+        self.w.show()
     
     def setup_stress_test_tab(self):
         layout = QVBoxLayout()
@@ -711,7 +712,7 @@ class MainWindow(QMainWindow):
         self.password_input.setPlaceholderText("Enter SFTP password")
         self.show_password_check = QPushButton("Show Password")
         self.show_password_check.setCheckable(True)
-        self.show_password_check.toggled.connect(lambda state: self.password_input.setEchoMode(QLineEdit.Normal) if state else self.password_input.setEchoMode(QLineEdit.Password))
+        self.show_password_check.toggled.connect(lambda state: self.password_input.setEchoMode(QLineEdit.Normal) or self.show_password_check.setText("Hide Password") if state else self.password_input.setEchoMode(QLineEdit.Password) or self.show_password_check.setText("Show Password"))
         
         password_layout.addWidget(self.password_input)
         password_layout.addWidget(self.show_password_check)
@@ -724,7 +725,7 @@ class MainWindow(QMainWindow):
         
         # Test File Selection
         file_layout = QHBoxLayout()
-        self.multi_file_checkbox = QCheckBox("Enable transfer of multiple files at once")
+        self.multi_file_checkbox = QCheckBox("Enable multiple files transfer")
         self.multi_file_progressbar = QProgressBar()
         self.multi_file_progressbar.setHidden(True)
         self.multi_file_checkbox.setChecked(False)
@@ -736,7 +737,7 @@ class MainWindow(QMainWindow):
         multi_file_layout.addWidget(self.multi_file_progressbar, 2)
         
         self.test_file_input = QLineEdit()
-        self.test_file_input.setPlaceholderText("Please select a test file...")
+        self.test_file_input.setPlaceholderText("Select a single test file to upload...")
         self.test_file_input.textChanged.connect(lambda: self.log_output.setText(f"The total number of files in selected folder is {len(os.listdir(self.test_file_input.text()))}") if os.path.isdir(self.test_file_input.text()) else None)
         browse_button = QPushButton("Browse")
         browse_button.clicked.connect(self.browse_test_file)
@@ -750,7 +751,7 @@ class MainWindow(QMainWindow):
         
         self.connections_input = QSpinBox()
         self.connections_input.setRange(1, 100)
-        self.connections_input.setValue(5)
+        self.connections_input.setValue(1)
         
         test_layout.addRow("Test File:", file_layout)
         test_layout.addRow("Concurrent Connections:", self.connections_input)
@@ -811,7 +812,7 @@ class MainWindow(QMainWindow):
         self.file_count_input.setRange(1, 100)
         self.file_count_input.setValue(1)
         
-        self.file_name_input = QLineEdit("dummy")
+        self.file_name_input = QLineEdit("dummy_file")
         self.file_name_input.setPlaceholderText("Enter a file name prefix")
         
         self.size_type_combo = QComboBox()
@@ -850,7 +851,7 @@ class MainWindow(QMainWindow):
         
         # Action Buttons
         gen_button_layout = QHBoxLayout()
-        self.generate_button = QPushButton("Generate Dummy Files")
+        self.generate_button = QPushButton("Generate Test Files")
         self.generate_button.clicked.connect(self.generate_dummy_files)
         self.cancel_generate_button = QPushButton("Cancel Generation")
         self.cancel_generate_button.clicked.connect(self.cancel_generation)
@@ -915,9 +916,9 @@ class MainWindow(QMainWindow):
     def multi_select_state_changed(self):
         if self.multi_file_checkbox.isChecked():
             self.test_file_input.clear()
-            self.test_file_input.setPlaceholderText("Please select a folder with test files...")
+            self.test_file_input.setPlaceholderText("Select a folder with test files to upload...")
         else:
-            self.test_file_input.setPlaceholderText("Please select a test file...")
+            self.test_file_input.setPlaceholderText("Select a single test file to upload...")
             self.test_file_input.clear()
     
     def browse_save_path(self):
@@ -1047,7 +1048,7 @@ class MainWindow(QMainWindow):
         self.gen_progress_bar.setValue(0)
         
         # Log start information
-        self.gen_log_output.append(f"Starting generation of {amount} dummy files...")
+        self.gen_log_output.append(f"Starting generation of {amount} test files...")
         self.gen_log_output.append(f"Path: {save_path}")
         self.gen_log_output.append(f"Size: {'Random 1-25 MB' if size_in_mb == 'random' else f'{size_in_mb} {fs_suffix}'}")
         self.gen_log_output.append("=" * 50)
