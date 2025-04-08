@@ -106,6 +106,54 @@ class ConfigManager:
         """Gets all keys of configuration file in a list and returns them as list."""
         dict_keys = self.data.keys()
         return list(dict_keys)
+
+class ProgressBarsWindow(QDialog):
+    def __init__(self, main_window, amount_of_progress_bars):
+        """Initializes the ProgressBarsWindow with a given number of progress bars."""
+        super().__init__(main_window)
+        self.main_window = main_window
+        self.amount_of_progress_bars = amount_of_progress_bars
+        self.progress_bars = {
+            
+        }
+        # Initialize settings for window geometry
+        self.settings = QSettings("CustomAction", "Jovan") # Settings to save current location of the windows on exit
+        geometry = self.settings.value("progress_bars_geometry", bytes())
+        icon = QIcon(os.path.join(CURRENT_WORKING_DIR, "_internal", "icon", "sftp_icon.ico"))
+        self.setWindowTitle("Progress Bars")
+        self.setWindowIcon(icon)
+        self.restoreGeometry(geometry)
+        
+        # Layout for the dialog
+        layout = QVBoxLayout()
+        
+        # Create progress bars
+        for i in range(self.amount_of_progress_bars):
+            horizontal_layout = QHBoxLayout()
+            progress_bar = QProgressBar(self)
+            progress_bar.setValue(0)
+            progress_bar.setTextVisible(True)  # Show percentage text
+            task_label = QLabel(f"Task ID {i}:", self)
+            
+            horizontal_layout.addWidget(task_label)
+            horizontal_layout.addWidget(progress_bar)
+            layout.addLayout(horizontal_layout)  # Add the horizontal layout to the main layout
+            
+            self.progress_bars[i] = progress_bar
+            
+        # Set the layout for the dialog
+        self.setLayout(layout)
+        
+    def update_progress(self, task_id, progress):
+        """Update the progress bar for a specific task."""
+        if task_id in self.progress_bars:
+            self.progress_bars[task_id].setValue(progress)
+        
+    def closeEvent(self, event: QCloseEvent):
+        # Save geometry on close
+        geometry = self.saveGeometry()
+        self.settings.setValue("progress_bars_geometry", geometry)
+        super(ProgressBarsWindow, self).closeEvent(event)
     
 class CustomAutoFillAction(QDialog):
     def __init__(self, main_window):
@@ -353,6 +401,7 @@ class SFTPWorker(QThread):
     """Worker thread for SFTP uploads"""
     progress_signal = Signal(int)
     multi_file_progress_signal = Signal(int)  # For multiple files
+    task_progress_bars_signal = Signal(int, int) # For multiple tasks - task_id, progress_percentage
     task_progress_signal = Signal(int, bool)  # task_id, success
     log_signal = Signal(str)
     finished_signal = Signal(float)
@@ -443,13 +492,10 @@ class SFTPWorker(QThread):
             transport = paramiko.Transport((self.host, self.port))
             transport.connect(username=self.username, password=self.password)
             sftp = paramiko.SFTPClient.from_transport(transport)
-    
-            if self.transfer_multiple_files:
-                if self.connections > 1:
-                    update_count_state = False
-                else:
-                    update_count_state = True
 
+            # If multiple files are selected and conccurent connections is 1
+            if self.transfer_multiple_files and self.connections > 1:
+                
                 files = os.listdir(self.test_file)
                 self.log_signal.emit(f"Task {task_id}: Uploading {len(files)} files...")
     
@@ -457,15 +503,35 @@ class SFTPWorker(QThread):
                     if self.stop_event.is_set():
                         self.log_signal.emit(f"Task {task_id}: Canceled during file uploads.")
                         return False
+                    
                     local_path = os.path.join(self.test_file, file)
                     remote_path = self._get_remote_path(file, task_id)
-    
+
                     sftp.put(local_path, remote_path)
                     self.log_signal.emit(f"Task {task_id}: Upload successful to: '{remote_path}'.")
-                    if update_count_state:
-                        total_files += 1
-                        progress = int((total_files / len(files)) * 100)
-                        self.multi_file_progress_signal.emit(progress)
+
+                    total_files += 1
+                    progress = int((total_files / len(files)) * 100)
+                    self.task_progress_bars_signal.emit(task_id, progress)
+                    
+            elif self.transfer_multiple_files and self.connections == 1:
+                
+                files = os.listdir(self.test_file)
+                self.log_signal.emit(f"Task {task_id}: Uploading {len(files)} files...")
+    
+                for file in files:
+                    if self.stop_event.is_set():
+                        self.log_signal.emit(f"Task {task_id}: Canceled during file uploads.")
+                        return False
+                    
+                    local_path = os.path.join(self.test_file, file)
+                    remote_path = self._get_remote_path(file, task_id)
+
+                    sftp.put(local_path, remote_path)
+                    self.log_signal.emit(f"Task {task_id}: Upload successful to: '{remote_path}'.")
+                    total_files += 1
+                    progress = int((total_files / len(files)) * 100)
+                    self.multi_file_progress_signal.emit(progress)
             else:
                 if self.stop_event.is_set():
                     self.log_signal.emit(f"Task {task_id}: Canceled during file uploads.")
@@ -738,6 +804,7 @@ class MainWindow(QMainWindow):
         
         self.test_file_input = QLineEdit()
         self.test_file_input.setPlaceholderText("Select a single test file to upload...")
+        self.test_file_input.setText("D:/GitHub/SFTP-Stress-Test-Tool/test")
         self.test_file_input.textChanged.connect(lambda: self.log_output.setText(f"The total number of files in selected folder is {len(os.listdir(self.test_file_input.text()))}") if os.path.isdir(self.test_file_input.text()) else None)
         browse_button = QPushButton("Browse")
         browse_button.clicked.connect(self.browse_test_file)
@@ -982,7 +1049,19 @@ class MainWindow(QMainWindow):
         self.sftp_worker.statusbar_signal.connect(self.update_statusbar)
         self.sftp_worker.statusbar_hidden_state.connect(self.update_statusbar_state)
         self.sftp_worker.finished_signal.connect(self.test_finished)
+        
+        self.show_progressbars_window() # Show the progress bars window if multiple connections are used
+        
         self.sftp_worker.start()
+        
+    
+    def show_progressbars_window(self):
+        connections = self.connections_input.value()
+        multiple_files_state = self.multi_file_checkbox.isChecked()
+        if connections > 1 and multiple_files_state:
+            self.progress_bar_window = ProgressBarsWindow(self, connections)
+            self.sftp_worker.task_progress_bars_signal.connect(self.progress_bar_window.update_progress)
+            self.progress_bar_window.show()
     
     def cancel_stress_test(self):
         if hasattr(self, 'sftp_worker') and self.sftp_worker.isRunning():
@@ -993,6 +1072,7 @@ class MainWindow(QMainWindow):
             self.cancel_test_button.setEnabled(False)
             self.multi_file_progressbar.setValue(0)
             self.multi_file_progressbar.setHidden(True)
+            self.progress_bar.setValue(0)
     
     @Slot(int)
     def update_sftp_progress(self, value):
@@ -1028,6 +1108,7 @@ class MainWindow(QMainWindow):
         self.cancel_test_button.setEnabled(False)
         self.multi_file_progressbar.setValue(0)
         self.multi_file_progressbar.setHidden(True)
+        self.progress_bar.setValue(0)
         #self.log_output.append(f"Test completed in {total_time:.2f} seconds.")
         self.log_output.append("=" * 50)
     
@@ -1144,7 +1225,7 @@ def main():
         }
     }
     
-    qdarktheme.setup_theme(theme="auto", custom_colors=my_custom_colors)
+    qdarktheme.setup_theme(theme="dark", custom_colors=my_custom_colors)
     
     window = MainWindow()
     window.show()
