@@ -10,7 +10,7 @@ import threading
 import psutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
-from PySide6.QtCore import QSettings, QThread, Signal, Slot
+from PySide6.QtCore import QSettings, QThread, Signal, Slot, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -113,14 +113,12 @@ class ProgressBarsWindow(QDialog):
         super().__init__(main_window)
         self.main_window = main_window
         self.amount_of_progress_bars = amount_of_progress_bars
-        self.progress_bars = {
-            
-        }
+        self.progress_bars = {}
         # Initialize settings for window geometry
         self.settings = QSettings("CustomAction", "Jovan") # Settings to save current location of the windows on exit
         geometry = self.settings.value("progress_bars_geometry", bytes())
         icon = QIcon(os.path.join(CURRENT_WORKING_DIR, "_internal", "icon", "sftp_icon.ico"))
-        self.setWindowTitle("Progress Bars")
+        self.setWindowTitle("Multiple Tasks Progress Bars")
         self.setWindowIcon(icon)
         self.restoreGeometry(geometry)
         
@@ -148,6 +146,13 @@ class ProgressBarsWindow(QDialog):
         """Update the progress bar for a specific task."""
         if task_id in self.progress_bars:
             self.progress_bars[task_id].setValue(progress)
+    
+    def start_auto_close_timer(self):
+        """Start a timer to close the window after 5 seconds."""
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)  # Ensure the timer only triggers once
+        self.timer.timeout.connect(self.close_window)
+        self.timer.start(5000)  # 5000 milliseconds = 5 seconds
         
     def closeEvent(self, event: QCloseEvent):
         # Save geometry on close
@@ -852,7 +857,7 @@ class MainWindow(QMainWindow):
         self.log_output = MyTextEdit()
         self.log_output.setReadOnly(True)
         self.log_output.customContextMenuRequested.connect(self.contextMenuEvent)
-        self.system_statusbar = QStatusBar()
+        self.system_statusbar = QStatusBar() # System bar at the bottom
         self.system_statusbar.setSizeGripEnabled(False)
         self.system_statusbar.setHidden(True)
         
@@ -1109,8 +1114,39 @@ class MainWindow(QMainWindow):
         self.multi_file_progressbar.setValue(0)
         self.multi_file_progressbar.setHidden(True)
         self.progress_bar.setValue(0)
+        if hasattr(self, 'progress_bar_window'):
+            self.start_auto_close_timer()
+        
         #self.log_output.append(f"Test completed in {total_time:.2f} seconds.")
         self.log_output.append("=" * 50)
+        
+    # Auto close timer for progressbar window
+    def start_auto_close_timer(self):
+        """Start a timer to close the window after 5 seconds."""
+        self.countdown = 5
+        self.statusbar_progressbar_window = QStatusBar()
+        self.statusbar_progressbar_window.setSizeGripEnabled(False)
+        self.statusbar_progressbar_window.setMaximumHeight(20)
+        self.progress_bar_window.layout().addWidget(self.statusbar_progressbar_window, 1)
+        self.update_statusbar_message()
+        # Create a QTimer to close the progress bar window after 5 seconds
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(False)  # Ensure the timer only triggers once
+        self.timer.timeout.connect(self.update_countdown)
+        self.timer.start(1000)  # 5000 milliseconds = 5 seconds
+    
+    def update_countdown(self):
+        """Update the countdown and close the window when it reaches zero."""
+        self.countdown -= 1
+        if self.countdown > 0:
+            self.update_statusbar_message()
+        else:
+            self.timer.stop()  # Stop the timer
+            self.progress_bar_window.close()  # Close the progress bar window
+    
+    def update_statusbar_message(self):
+        """Update the status bar message with the remaining countdown time."""
+        self.statusbar_progressbar_window.showMessage(f"Tasks completed. Closing window in {self.countdown} seconds...")
     
     def generate_dummy_files(self):
         amount = self.file_count_input.value()
