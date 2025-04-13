@@ -650,7 +650,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings("SFTP_Main", "Jovan") # Settings to save current location of the windows on exit
         geometry = self.settings.value("main_window_geometry", bytes())
 
-        self.setWindowTitle("SFTP Stress Test Tool v1.4.1")
+        self.setWindowTitle("SFTP Stress Test Tool v1.1.2")
         self.setWindowIcon(app_icon)
         self.setMinimumSize(800, 600)
         self.restoreGeometry(geometry)
