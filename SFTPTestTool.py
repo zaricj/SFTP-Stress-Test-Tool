@@ -796,7 +796,7 @@ class MainWindow(QMainWindow):
         
         # Test File Selection
         file_layout = QHBoxLayout()
-        self.multi_file_checkbox = QCheckBox("Enable multiple files transfer")
+        self.multi_file_checkbox = QCheckBox("Multiple files transfer")
         self.multi_file_progressbar = QProgressBar()
         self.multi_file_progressbar.setHidden(True)
         self.multi_file_checkbox.setChecked(False)
@@ -809,7 +809,6 @@ class MainWindow(QMainWindow):
         
         self.test_file_input = QLineEdit()
         self.test_file_input.setPlaceholderText("Select a single test file to upload...")
-        self.test_file_input.setText("D:/GitHub/SFTP-Stress-Test-Tool/test")
         self.test_file_input.textChanged.connect(lambda: self.log_output.setText(f"The total number of files in selected folder is {len(os.listdir(self.test_file_input.text()))}") if os.path.isdir(self.test_file_input.text()) else None)
         browse_button = QPushButton("Browse")
         browse_button.clicked.connect(self.browse_test_file)
@@ -825,12 +824,12 @@ class MainWindow(QMainWindow):
         self.connections_input.setRange(1, 100)
         self.connections_input.setValue(1)
         
-        test_layout.addRow("Test File:", file_layout)
-        test_layout.addRow("Concurrent Connections:", self.connections_input)
-        test_layout.addRow("Multiple Files", multi_file_layout) # Added Horizotnal layout for multiple files and progress bar instead of only checkbox
+        test_layout.addRow("Test file(s) to upload:", file_layout)
+        test_layout.addRow("Parallel connections:", self.connections_input)
+        test_layout.addRow("Options:", multi_file_layout) # Added Horizotnal layout for multiple files and progress bar instead of only checkbox
         
         # Progress
-        progress_group = QGroupBox("Test Progress")
+        progress_group = QGroupBox("Total progress per task")
         progress_layout = QVBoxLayout()
         progress_group.setLayout(progress_layout)
         
@@ -977,20 +976,20 @@ class MainWindow(QMainWindow):
     
     def browse_test_file(self):
         if not self.multi_file_checkbox.isChecked():
-            file_name, _ = QFileDialog.getOpenFileName(self, "Select Test File")
+            file_name, _ = QFileDialog.getOpenFileName(self, "Select a single file")
             if file_name:
                 self.test_file_input.setText(file_name)
         else:
-            folder = QFileDialog.getExistingDirectory(self, "Select Test Files Folder")
+            folder = QFileDialog.getExistingDirectory(self, "Select folder that contains files")
             if folder:
                 self.test_file_input.setText(folder)
     
     def multi_select_state_changed(self):
         if self.multi_file_checkbox.isChecked():
             self.test_file_input.clear()
-            self.test_file_input.setPlaceholderText("Select a folder with test files to upload...")
+            self.test_file_input.setPlaceholderText("Select a folder with files to upload...")
         else:
-            self.test_file_input.setPlaceholderText("Select a single test file to upload...")
+            self.test_file_input.setPlaceholderText("Select a single file to upload...")
             self.test_file_input.clear()
     
     def browse_save_path(self):
@@ -1028,7 +1027,7 @@ class MainWindow(QMainWindow):
         
         # Validate inputs
         if not os.path.exists(test_file):
-            self.log_output.append(f"ERROR: Test file '{test_file}' does not exist.")
+            self.log_output.append(f"ERROR: Test file(s) '{test_file}' does not exist.")
             return
         
         # Clear previous log and reset progress
