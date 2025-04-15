@@ -880,7 +880,7 @@ class MainWindow(QMainWindow):
         gen_group.setLayout(gen_layout)
         
         self.file_count_input = QSpinBox()
-        self.file_count_input.setRange(1, 100)
+        self.file_count_input.setRange(1, 10000)
         self.file_count_input.setValue(1)
         
         self.file_name_input = QLineEdit("dummy_file")
@@ -891,7 +891,7 @@ class MainWindow(QMainWindow):
         self.size_type_combo.currentIndexChanged.connect(self.toggle_size_input)
         
         self.file_size_input = QSpinBox()
-        self.file_size_input.setRange(1, 1000)
+        self.file_size_input.setRange(1, 10000)
         self.file_size_input.setValue(1)
         self.file_size_input.setSuffix(" MB")
         
@@ -966,13 +966,13 @@ class MainWindow(QMainWindow):
     def update_file_size_suffix(self):
         if self.size_type_combo.currentIndex() == 0:
             self.file_size_input.setSuffix(" MB")
-            self.file_count_input.setRange(1, 100)
+            self.file_count_input.setRange(1, 10000)
         elif self.size_type_combo.currentIndex() == 1:
             self.file_size_input.setSuffix(" KB")
             self.file_count_input.setRange(1, 10000)
         else:
             self.file_size_input.setSuffix(" Random file size between 1-25 MB")
-            self.file_count_input.setRange(1, 100)
+            self.file_count_input.setRange(1, 1000)
     
     def browse_test_file(self):
         if not self.multi_file_checkbox.isChecked():
