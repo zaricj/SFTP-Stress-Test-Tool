@@ -849,7 +849,7 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(self.cancel_test_button)
         
         # Log Output
-        log_group = QGroupBox("Test Log")
+        log_group = QGroupBox("Program Output")
         log_layout = QVBoxLayout()
         log_group.setLayout(log_layout)
         
@@ -986,11 +986,16 @@ class MainWindow(QMainWindow):
     
     def multi_select_state_changed(self):
         if self.multi_file_checkbox.isChecked():
-            self.test_file_input.clear()
+            if len(self.test_file_input.text()) != 0:
+                if os.path.isfile(self.test_file_input.text()):
+                    head, tail = os.path.split(self.test_file_input.text())
+                    self.test_file_input.setText(head)
+                else:
+                    self.test_file_input.clear()
             self.test_file_input.setPlaceholderText("Select a folder with files to upload...")
         else:
-            self.test_file_input.setPlaceholderText("Select a single file to upload...")
             self.test_file_input.clear()
+            self.test_file_input.setPlaceholderText("Select a single file to upload...")
     
     def browse_save_path(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Save Directory")
@@ -1237,22 +1242,22 @@ def main():
     
     my_custom_colors = {
         "[dark]": {
-            "primary": "#3F69FD",
+            "primary": "#3FAF5E",
             "input.background": "#3f4042",
             "background>textarea": "#3f4042",
             "primary>button.hoverBackground": "#3f4042",
-            "menubar.selectionBackground": "#3F69FD",
-            "popupItem.selectionBackground": "#3F69FD",
-            "scrollbarSlider.background": "#3F69FD"
+            "menubar.selectionBackground": "#3FAF5E",
+            "popupItem.selectionBackground": "#3FAF5E",
+            "scrollbarSlider.background": "#3FAF5E"
         },
         
         "[light]": {
             "primary": "#3F69FD",
-            "background": "#fcfcfc",
+            "background": "#f5f5f5",
             "foreground": "#000000",
-            "input.background": "#ebebeb",
-            "background>textarea": "#ebebeb",
-            "primary>button.hoverBackground": "#ebebeb",
+            "input.background": "#e6e6e6",
+            "background>textarea": "#e6e6e6",
+            "primary>button.hoverBackground": "#e6e6e6",
             "border": "#949494",
             "menubar.selectionBackground": "#3F69FD",
             "popupItem.selectionBackground": "#3F69FD",
